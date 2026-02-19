@@ -1,7 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from 'firebase/auth';
 import Login from '../Login';
 
 const mockPush = jest.fn();
@@ -9,6 +13,8 @@ const mockPush = jest.fn();
 jest.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: jest.fn(),
   createUserWithEmailAndPassword: jest.fn(),
+  signInWithPopup: jest.fn(),
+  GoogleAuthProvider: jest.fn(),
 }));
 
 jest.mock('next/navigation', () => ({
@@ -38,6 +44,7 @@ describe('Login Component', () => {
       expect(screen.getByTestId('email-input')).toBeInTheDocument();
       expect(screen.getByTestId('password-input')).toBeInTheDocument();
       expect(screen.getByTestId('submit-button')).toBeInTheDocument();
+      expect(screen.getByTestId('google-signin-button')).toBeInTheDocument();
     });
 
     it('renders email and password labels', () => {
@@ -321,6 +328,21 @@ describe('Login Component', () => {
 
       const successMessage = await screen.findByTestId('success-message');
       expect(successMessage).toHaveTextContent('Account created!');
+    });
+
+    it('signs in with Google when Google button is clicked', async () => {
+      const user = userEvent.setup();
+      const googleSignInMock = signInWithPopup as jest.Mock;
+      googleSignInMock.mockResolvedValueOnce({ user: { uid: 'google-user' } });
+
+      render(<Login />);
+
+      const googleButton = screen.getByTestId('google-signin-button');
+      await user.click(googleButton);
+
+      await waitFor(() => {
+        expect(googleSignInMock).toHaveBeenCalledWith(expect.anything(), expect.anything());
+      });
     });
   });
 

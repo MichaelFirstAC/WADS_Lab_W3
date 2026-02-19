@@ -1,6 +1,11 @@
 'use client';
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -20,6 +25,7 @@ export default function Login() {
 
   const [errors, setErrors] = useState<Partial<LoginFormData>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [authError, setAuthError] = useState('');
@@ -91,6 +97,28 @@ export default function Login() {
       setAuthError(message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setSuccessMessage('');
+    setAuthError('');
+    setIsRedirecting(false);
+    setIsGoogleLoading(true);
+
+    try {
+      const googleProvider = new GoogleAuthProvider();
+      await signInWithPopup(auth, googleProvider);
+      setSuccessMessage('Login successful!');
+      setIsRedirecting(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      router.push('/dashboard');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Google login failed. Please try again.';
+      setAuthError(message);
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -193,7 +221,7 @@ export default function Login() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               data-testid="submit-button"
               className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 mt-6"
             >
@@ -204,6 +232,22 @@ export default function Login() {
                 : authMode === 'signUp'
                   ? 'Create Account'
                   : 'Sign In'}
+            </button>
+
+            <div className="flex items-center">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="px-3 text-xs text-gray-500 uppercase tracking-wide">or</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading || isGoogleLoading}
+              data-testid="google-signin-button"
+              className="w-full border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500 text-gray-700 font-semibold py-2 px-4 rounded-lg transition duration-200"
+            >
+              {isGoogleLoading ? 'Signing in with Google...' : 'Continue with Google'}
             </button>
           </form>
 
